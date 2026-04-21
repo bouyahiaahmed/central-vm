@@ -1,0 +1,167 @@
+services:
+  opensearch:
+    image: opensearchproject/opensearch:3.5.0
+    container_name: os-node-1
+    restart: unless-stopped
+
+    environment:
+      cluster.name: ${OPENSEARCH_CLUSTER_NAME:-ndr-central}
+      node.name: ${OPENSEARCH_NODE_NAME:-opensearch-node1}
+      discovery.type: single-node
+
+      OPENSEARCH_JAVA_OPTS: ${OPENSEARCH_JAVA_OPTS:--Xms4g -Xmx4g}
+
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+
+      plugins.security.disabled: "false"
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+
+      bootstrap.memory_lock: "true"
+
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+
+    volumes:
+      - os-data:/usr/share/opensearch/data
+      - ../configs/opensearch.yml:/usr/share/opensearch/config/opensearch.yml:ro
+      - ../certs:/usr/share/opensearch/config/certs:ro
+
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+
+    networks:
+       backend:
+         aliases:
+          - opensearch-node1
+          - opensearch
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sk https://localhost:9200 >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 40
+
+  dashboards:
+    image: opensearchproject/opensearch-dashboards:3.5.0
+    container_name: ndr-dashboards
+    restart: unless-stopped
+
+    depends_on:
+      opensearch:
+        condition: service_healthy
+
+    environment:
+      OS_DASHBOARDS_USERNAME: ${OS_DASHBOARDS_USERNAME}
+      OS_DASHBOARDS_PASSWORD: ${OS_DASHBOARDS_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sk https://localhost:5601/api/status >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 40
+
+    volumes:
+      - ../configs/dashboards.yml:/usr/share/opensearch-dashboards/config/opensearch_dashboards.yml:ro
+      - ../certs/ca:/usr/share/opensearch-dashboards/config/certs/ca:ro
+      - ../certs/dashboards:/usr/share/opensearch-dashboards/config/certs/dashboards:ro
+
+    ports:
+      - "5601:5601"
+
+    networks:
+      - backend
+
+  dataprepper:
+    image: opensearchproject/data-prepper:2.13.1
+    container_name: ndr-dataprepper
+    restart: unless-stopped
+
+    depends_on:
+      opensearch:
+        condition: service_healthy
+
+    environment:
+      OS_INGEST_USERNAME: ${OS_INGEST_USERNAME}
+      OS_INGEST_PASSWORD: ${OS_INGEST_PASSWORD}
+      DP_HTTP_USERNAME: ${DP_HTTP_USERNAME}
+      DP_HTTP_PASSWORD: ${DP_HTTP_PASSWORD}
+      DP_INDEX_PREFIX: ${DP_INDEX_PREFIX:-zeek}
+
+    volumes:
+      - ../configs/dataprepper/data-prepper.yml:/usr/share/data-prepper/config/data-prepper.yml:ro
+      - ../configs/dataprepper/pipelines.yml:/usr/share/data-prepper/pipelines/pipelines.yml:ro
+      - ../certs/ca:/usr/share/data-prepper/certs/ca:ro
+      - ../certs/dataprepper:/usr/share/data-prepper/certs/dataprepper:ro
+
+    ports:
+      - "2021:2021"
+
+    networks:
+      - backend
+
+
+  # zeek-index-pattern-sync:
+  #   build:
+  #     context: ./zeek-index-pattern-sync
+  #   container_name: zeek-index-pattern-sync
+  #   restart: unless-stopped
+  #
+  #   environment:
+  #     OPENSEARCH_URL: "https://opensearch-node1:9200"
+  #     OPENSEARCH_USERNAME: ${OPENSEARCH_USERNAME:-admin}
+  #     OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD:-admin}
+  #
+  #     OPENSEARCH_DASHBOARDS_URL: "https://dashboards:5601"
+  #     OPENSEARCH_DASHBOARDS_USERNAME: ${OS_DASHBOARDS_USERNAME:-admin}
+  #     OPENSEARCH_DASHBOARDS_PASSWORD: ${OS_DASHBOARDS_PASSWORD:-admin}
+  #
+  #     INDEX_PREFIX: "zeek-"
+  #     DASHBOARDS_TENANT: "global"
+  #     POLL_INTERVAL_SECONDS: "60"
+  #     INSECURE_TLS: "true"
+  #
+  #   depends_on:
+  #     opensearch:
+  #       condition: service_healthy
+  #     dashboards:
+  #       condition: service_healthy
+  #
+  #   networks:
+  #     - backend
+
+  # zeek-alias-sync:
+  #   build:
+  #     context: ./zeek-alias-sync
+  #   container_name: zeek-alias-sync
+  #   restart: unless-stopped
+  #
+  #   environment:
+  #     OPENSEARCH_URL: "https://opensearch-node1:9200"
+  #     OPENSEARCH_USERNAME: ${OPENSEARCH_USERNAME:-admin}
+  #     OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD-admin}
+  #
+  #     INITIAL_WAIT_SECONDS: "120"
+  #     MIN_EXPECTED_INDICES: "5"
+  #
+  #     INDEX_PREFIX: "zeek-"
+  #     POLL_INTERVAL_SECONDS: "60"
+  #     INSECURE_TLS: "true"
+  #
+  #   depends_on:
+  #     opensearch:
+  #       condition: service_healthy
+  #
+  #   networks:
+  #     - backend
+
+volumes:
+  os-data:
+
+networks:
+  backend:
+    driver: bridge

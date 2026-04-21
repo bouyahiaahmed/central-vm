@@ -1,0 +1,12 @@
+# secrets
+.env
+
+# generated certs
+certs/
+*.crt
+*.key
+*.csr
+*.srl
+
+# docker
+**/.DS_Store
