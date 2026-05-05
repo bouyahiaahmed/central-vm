@@ -1,12 +1,37 @@
-# secrets
+# Environment / secrets
 .env
+.env.*
+!.env.example
 
-# generated certs
-certs/
-*.crt
-*.key
-*.csr
-*.srl
+# Certificates and private keys
+certs/**/*.key
+certs/**/*.srl
+certs/**/*.pem
+certs/**/*.p12
+certs/**/*.pfx
+certs/ca/ca.key
+certs/ca/ca.srl
 
-# docker
-**/.DS_Store
+# Optional: generated cert files
+certs/**/*.crt
+
+# User/security files
+users/users.json
+
+# Runtime / data
+data/
+logs/
+*.log
+*.pid
+*.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Docker / local
+.docker/
+docker_os-data/
