@@ -263,8 +263,6 @@ services:
       CHECKPOINT_ID: "default"
 
       POLL_INTERVAL_SECONDS: "30"
-      LOOKBACK_OVERLAP_SECONDS: "120"
-      INITIAL_LOOKBACK_SECONDS: "86400"
       READ_PAGE_SIZE: "500"
       BULK_SIZE: "500"
 
@@ -273,6 +271,26 @@ services:
       PRESERVE_RAW_EVENT_FIELDS: "true"
 
       HTTP_PORT: "8080"
+      # Production hardening
+      PROCESS_TIME_FIELD: "ingest_time_vt"
+      EVENT_TIME_FIELD: "@timestamp"
+
+      # Keep a reconciliation overlap so late Zeek logs update old sessions
+      LOOKBACK_OVERLAP_SECONDS: "1800"
+      INITIAL_LOOKBACK_SECONDS: "86400"
+
+      # Dynamic internal network logic, not static VM IPs
+      INTERNAL_NETWORKS: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+
+      # Dynamic control-plane tagging, not IP filtering
+      CONTROL_PLANE_PORTS: "2021,4900,5601,9200,9300,9598"
+      CONTROL_PLANE_PROTOCOLS: "ntp,dhcp"
+      CONTROL_PLANE_TAG_ONLY: "true"
+
+      # Safer session document semantics
+      DEFAULT_UNKNOWN_PROTOCOL: "unknown"
+      TAG_CONTROL_PLANE: "true"
+
 
     volumes:
       - ../certs/ca/ca.crt:/certs/ca/ca.crt:ro

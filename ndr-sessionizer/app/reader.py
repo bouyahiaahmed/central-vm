@@ -19,9 +19,10 @@ class ZeekReader:
         self.settings = settings
 
     def read_window(self, start: datetime, end: datetime) -> Iterator[dict[str, Any]]:
+        process_time_field = self.settings.process_time_field
         """Yield raw OpenSearch hits using PIT + search_after.
 
-        Sorting by @timestamp then _shard_doc is stable inside a PIT and avoids
+        Sorting by process_time_field then _shard_doc is stable inside a PIT and avoids
         missing documents when many events share the same timestamp.
         """
         pit_id: str | None = None
@@ -66,13 +67,13 @@ class ZeekReader:
                     "query": {
                         "bool": {
                             "filter": [
-                                {"range": {"@timestamp": {"gte": isoformat(start), "lte": isoformat(end)}}},
-                                {"exists": {"field": "@timestamp"}},
+                                {"range": {process_time_field: {"gte": isoformat(start), "lte": isoformat(end)}}},
+                                {"exists": {"field": process_time_field}},
                             ]
                         }
                     },
                     "sort": [
-                        {"@timestamp": {"order": "asc"}},
+                        {process_time_field: {"order": "asc"}},
                         {"_shard_doc": "asc"},
                     ],
                     "pit": {"id": pit_id, "keep_alive": "2m"},

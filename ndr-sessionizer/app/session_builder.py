@@ -92,12 +92,49 @@ class SessionBuilder:
 
     def group_hits(self, hits: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
         groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        x509_by_fingerprint: dict[str, list[dict[str, Any]]] = defaultdict(list)
+
         for hit in hits:
             source = hit.get("_source") or {}
             if not isinstance(source, dict):
                 continue
+
+            log_type = safe_log_type(get_field(source, "log_type"))
+
+            # x509.log usually does not share the same Zeek UID as ssl.log.
+            # Keep it aside and attach it later using ssl.cert_chain_fps[] -> x509.fingerprint.
+            if log_type == "x509":
+                fingerprint = get_field(source, "fingerprint")
+                if fingerprint:
+                    x509_by_fingerprint[str(fingerprint)].append(hit)
+                continue
+
             key = self.session_key(source)
             groups[key].append(hit)
+
+        # Enrich TLS/SSL sessions with matching x509 certificate documents.
+        for key, group in list(groups.items()):
+            cert_fps: list[str] = []
+            for hit in group:
+                source = hit.get("_source") or {}
+                if not isinstance(source, dict):
+                    continue
+                if safe_log_type(get_field(source, "log_type")) not in {"ssl", "tls"}:
+                    continue
+                for fp in as_list(get_field(source, "cert_chain_fps")):
+                    if fp:
+                        cert_fps.append(str(fp))
+
+            seen_x509_ids = {str(hit.get("_id") or "") for hit in group}
+            for fp in unique_values(cert_fps):
+                for x509_hit in x509_by_fingerprint.get(fp, []):
+                    x509_id = str(x509_hit.get("_id") or "")
+                    if x509_id and x509_id in seen_x509_ids:
+                        continue
+                    group.append(x509_hit)
+                    if x509_id:
+                        seen_x509_ids.add(x509_id)
+
         return groups
 
     def session_key(self, event: dict[str, Any]) -> str:

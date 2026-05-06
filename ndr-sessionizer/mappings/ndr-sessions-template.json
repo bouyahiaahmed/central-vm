@@ -66,6 +66,33 @@
             },
             "has_ssh": {
               "type": "boolean"
+            },
+            "evidence_count": {
+              "type": "long"
+            },
+            "raw_event_count": {
+              "type": "long"
+            },
+            "normalized_event_count": {
+              "type": "long"
+            },
+            "events_truncated": {
+              "type": "boolean"
+            },
+            "category": {
+              "type": "keyword"
+            },
+            "excluded_from_behavior": {
+              "type": "boolean"
+            },
+            "noise_reasons": {
+              "type": "keyword"
+            },
+            "key_type": {
+              "type": "keyword"
+            },
+            "flow_based": {
+              "type": "boolean"
             }
           }
         },
@@ -288,6 +315,27 @@
             },
             "basic_constraints_ca": {
               "type": "boolean"
+            },
+            "fingerprints": {
+              "type": "keyword"
+            },
+            "subjects": {
+              "type": "keyword"
+            },
+            "issuers": {
+              "type": "keyword"
+            },
+            "key_types": {
+              "type": "keyword"
+            },
+            "key_lengths": {
+              "type": "integer"
+            },
+            "signature_algorithms": {
+              "type": "keyword"
+            },
+            "is_ca": {
+              "type": "boolean"
             }
           }
         },
@@ -364,6 +412,15 @@
             },
             "filenames": {
               "type": "keyword"
+            },
+            "count": {
+              "type": "long"
+            },
+            "mime_type_count": {
+              "type": "long"
+            },
+            "hash_count": {
+              "type": "long"
             }
           }
         },

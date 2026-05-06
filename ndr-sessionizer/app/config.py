@@ -31,6 +31,10 @@ class Settings:
     opensearch_verify_certs: bool = True
 
     source_index_pattern: str = "zeek-logs*"
+
+    process_time_field: str = "ingest_time_vt"
+
+    event_time_field: str = "@timestamp"
     target_index_prefix: str = "ndr-sessions"
     state_index: str = "ndr-sessionizer-state"
 
@@ -78,6 +82,8 @@ def load_settings(config_path: str | None = None) -> Settings:
         opensearch_ca_cert=os.getenv("OPENSEARCH_CA_CERT", _get(cfg, "opensearch_ca_cert", None)),
         opensearch_verify_certs=_bool(os.getenv("OPENSEARCH_VERIFY_CERTS", str(_get(cfg, "opensearch_verify_certs", True))), True),
         source_index_pattern=os.getenv("SOURCE_INDEX_PATTERN", _get(cfg, "source_index_pattern", Settings.source_index_pattern)),
+        process_time_field=os.getenv("PROCESS_TIME_FIELD", _get(cfg, "process_time_field", Settings.process_time_field)),
+        event_time_field=os.getenv("EVENT_TIME_FIELD", _get(cfg, "event_time_field", Settings.event_time_field)),
         target_index_prefix=os.getenv("TARGET_INDEX_PREFIX", _get(cfg, "target_index_prefix", Settings.target_index_prefix)),
         state_index=os.getenv("STATE_INDEX", _get(cfg, "state_index", Settings.state_index)),
         poll_interval_seconds=_int(os.getenv("POLL_INTERVAL_SECONDS"), int(_get(cfg, "poll_interval_seconds", 30))),

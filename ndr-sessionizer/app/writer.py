@@ -10,6 +10,7 @@ from opensearchpy import OpenSearch, helpers
 from app.config import Settings
 from app.metrics import OPENSEARCH_ERRORS, SESSIONS_CREATED, SESSIONS_UPDATED, SESSIONS_UPSERTED
 from app.session_builder import SessionBuilder
+from app.session_hardening import harden_session_document
 from app.utils import get_field, parse_ts
 
 logger = logging.getLogger(__name__)
@@ -76,6 +77,8 @@ class SessionWriter:
                 target_index = self.index_for_doc(doc)
                 final_doc = doc
                 created += 1
+            final_doc = harden_session_document(final_doc)
+
             actions.append(
                 {
                     "_op_type": "index",
