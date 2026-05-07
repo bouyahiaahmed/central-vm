@@ -1,37 +1,29 @@
-# Environment / secrets
-.env
-.env.*
-!.env.example
-
-# Certificates and private keys
-certs/**/*.key
-certs/**/*.srl
-certs/**/*.pem
-certs/**/*.p12
-certs/**/*.pfx
-certs/ca/ca.key
-certs/ca/ca.srl
-
-# Optional: generated cert files
-certs/**/*.crt
-
-# User/security files
-users/users.json
-
-# Runtime / data
-data/
-logs/
-*.log
-*.pid
-*.tmp
-
-# Python
+# Python / cache
 __pycache__/
 *.py[cod]
 .pytest_cache/
-.venv/
-venv/
 
-# Docker / local
-.docker/
-docker_os-data/
+# Local env / secrets
+.env
+.env.*
+*.secret
+*.vault
+
+# Generated certificates and private keys
+certs/**
+!certs/
+!certs/README.txt
+*.key
+*.pem
+*.srl
+*.p12
+*.jks
+
+# Local users / credentials
+users/users.json
+
+# Logs / runtime data
+*.log
+data/
+opensearch-data/
+vector-data/
