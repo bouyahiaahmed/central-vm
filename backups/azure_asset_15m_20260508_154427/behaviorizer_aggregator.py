@@ -27,54 +27,19 @@ def get_event_time(doc: dict[str, Any], settings: Settings) -> Any:
 
 def entity_for_doc(doc: dict[str, Any], settings: Settings) -> tuple[str | None, str | None, str]:
     source_ip = get_field(doc, "source.ip")
-    destination_ip = get_field(doc, "destination.ip")
-    source_local = get_field(doc, "source.local")
-    destination_local = get_field(doc, "destination.local")
-    asset_ip = get_field(doc, "network.asset.ip")
-    asset_side = get_field(doc, "network.asset.side")
-
     sensor = get_field(doc, "sensor.name") or get_field(doc, "sensor") or get_field(doc, "host.name")
     sensor_text = str(sensor) if sensor else None
-
-    mode = (settings.behavior_entity_mode or "asset_sensor").strip().lower()
-
-    # Correct NDR mode:
-    # behavior entity = monitored/local asset involved in the session.
-    # outbound/internal: entity=source.ip
-    # inbound: entity=destination.ip
-    if mode in {"asset_sensor", "local_asset_sensor", "monitored_asset_sensor"}:
-        if asset_ip:
-            entity_type = (
-                f"local_asset.ip+sensor.name:{asset_side or 'unknown'}"
-                if sensor_text
-                else f"local_asset.ip:{asset_side or 'unknown'}"
-            )
-            return str(asset_ip), sensor_text, entity_type
-
-        if source_local is True and source_ip:
-            return str(source_ip), sensor_text, "local_asset.source.ip+sensor.name" if sensor_text else "local_asset.source.ip"
-
-        if destination_local is True and destination_ip:
-            return str(destination_ip), sensor_text, "local_asset.destination.ip+sensor.name" if sensor_text else "local_asset.destination.ip"
-
-        return None, sensor_text, "local_asset.ip"
-
-    # Legacy source-IP mode.
+    mode = (settings.behavior_entity_mode or "host_sensor").strip().lower()
     if not source_ip:
         return None, sensor_text, "source.ip"
-
     entity = str(source_ip)
-
     if mode in {"host_sensor", "source_sensor", "source.ip+sensor.name"}:
         entity_type = "source.ip+sensor.name" if sensor_text else "source.ip"
         return entity, sensor_text, entity_type
-
     if mode in {"sensor_host", "sensor_source"}:
         entity_type = "sensor.name+source.ip" if sensor_text else "source.ip"
         return entity, sensor_text, entity_type
-
     return entity, None, "source.ip"
-
 
 
 class BehaviorAggregator:
@@ -110,11 +75,6 @@ class BehaviorAggregator:
                     "window_start_dt": window_start_dt,
                     "window_end_dt": window_end_dt,
                     "source_local": get_field(doc, "source.local"),
-                    "asset_side": get_field(doc, "network.asset.side"),
-                    "asset_spoke": get_field(doc, "network.asset.spoke"),
-                    "asset_vnet": get_field(doc, "network.asset.vnet"),
-                    "asset_subnet": get_field(doc, "network.asset.subnet"),
-                    "asset_subnet_cidr": get_field(doc, "network.asset.subnet_cidr"),
                 }
             groups[key].add(doc, hit_meta=hit, max_session_refs=self.settings.behavior_max_session_refs)
 
@@ -140,7 +100,7 @@ class BehaviorAggregator:
                     "id": behavior_id,
                     "type": self.spec.behavior_type,
                     "feature_set": self.spec.feature_set,
-                    "entity_type": ("local_asset.ip+sensor.name:asset" if key.sensor else "local_asset.ip:asset"),
+                    "entity_type": meta["entity_type"],
                     "entity": key.entity,
                     "sensor": key.sensor,
                     "window": self.spec.window,
@@ -148,15 +108,7 @@ class BehaviorAggregator:
                     "window_end": isoformat(meta["window_end_dt"]),
                     "session_index_pattern": self.settings.source_index_pattern,
                 },
-                "source": {"ip": key.entity, "local": True},
-                "asset": {
-                    "ip": key.entity,
-                    "side": "combined",
-                    "spoke": meta.get("asset_spoke"),
-                    "vnet": meta.get("asset_vnet"),
-                    "subnet": meta.get("asset_subnet"),
-                    "subnet_cidr": meta.get("asset_subnet_cidr"),
-                },
+                "source": {"ip": key.entity, "local": meta.get("source_local")},
                 "quality": acc.quality(feature_complete=feature_complete),
                 "features": features,
                 "human": acc.human(key.entity),

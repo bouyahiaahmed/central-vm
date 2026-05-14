@@ -277,13 +277,10 @@ services:
 
       # Keep a reconciliation overlap so late Zeek logs update old sessions
       LOOKBACK_OVERLAP_SECONDS: "1800"
-      INITIAL_LOOKBACK_SECONDS: "259200"
+      INITIAL_LOOKBACK_SECONDS: "86400"
 
       # Dynamic internal network logic, not static VM IPs
       INTERNAL_NETWORKS: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
-      # Format: spoke:vnet:subnet:cidr;spoke:vnet:subnet:cidr
-      # Edit AZURE_SUBNETS in .env for your real hub/spoke topology.
-      AZURE_SUBNETS: "${AZURE_SUBNETS:-spoke1:amatest-vnet:sensor-subnet:10.51.1.0/24;spoke1:amatest-vnet:services-subnet:10.51.3.0/24}"
 
       # Dynamic control-plane tagging, not IP filtering
       CONTROL_PLANE_PORTS: "2021,4900,5601,9200,9300,9598"
@@ -384,16 +381,16 @@ services:
       PROCESS_TIME_FIELD: "sessionizer.updated_at"
       EVENT_TIME_FIELD: "@timestamp"
 
-      BEHAVIOR_WINDOW_SECONDS: "900"
-      LOOKBACK_OVERLAP_SECONDS: "1800"
-      INITIAL_LOOKBACK_SECONDS: "259200"
+      BEHAVIOR_WINDOW_SECONDS: "3600"
+      LOOKBACK_OVERLAP_SECONDS: "7200"
+      INITIAL_LOOKBACK_SECONDS: "86400"
       POLL_INTERVAL_SECONDS: "60"
       READ_PAGE_SIZE: "500"
       BULK_SIZE: "500"
 
-      FEATURE_SET: "asset_15m_v1"
-      FEATURE_CONFIG_PATH: "/app/features/asset_15m_v1.yaml"
-      BEHAVIOR_ENTITY_MODE: "asset_sensor"
+      FEATURE_SET: "host_hourly_v1"
+      FEATURE_CONFIG_PATH: "/app/features/host_hourly_v1.yaml"
+      BEHAVIOR_ENTITY_MODE: "host_sensor"
 
       RUN_ONCE: "false"
       DRY_RUN: "false"
@@ -401,13 +398,12 @@ services:
       HTTP_PORT: "8080"
       SERVICE_VERSION: "0.1.0"
 
-      ML_ENABLED: "true"
+      ML_ENABLED: "false"
       ML_MIN_TRAINING_ROWS: "20"
       ML_CONTAMINATION: "0.05"
-      ML_TRAINING_MAX_DOCS: "10000"
-      ML_SCORE_CURRENT_ONLY: "true"
+      ML_TRAINING_MAX_DOCS: "2000"
       ML_MODEL_ARTIFACT_PATH: "/tmp/ndr_behaviorizer_model.pkl"
-      FINDINGS_ENABLED: "true"
+      FINDINGS_ENABLED: "false"
       FINDINGS_INDEX_PREFIX: "ndr-findings"
 
     volumes:
@@ -440,7 +436,6 @@ services:
       - ../configs/elastalert/config.yaml:/opt/elastalert/config.yaml:ro
       - ../configs/elastalert/rules:/opt/elastalert/rules:ro
       - ../certs/ca/ca.crt:/opt/elastalert/certs/ca.crt:ro
-      - ../configs/elastalert/enhancements:/opt/elastalert/enhancements:ro
 
     environment:
       ES_HOST: opensearch-node1
@@ -448,8 +443,6 @@ services:
       ES_USE_SSL: "true"
       ES_USERNAME: "${NDR_ADMIN_USERNAME}"
       ES_PASSWORD: "${NDR_ADMIN_PASSWORD}"
-      PYTHONPATH: "/opt/elastalert"
-
 
     command: ["--verbose"]
 

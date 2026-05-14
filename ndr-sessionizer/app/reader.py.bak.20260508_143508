@@ -67,42 +67,13 @@ class ZeekReader:
                     "query": {
                         "bool": {
                             "filter": [
-                                {
-                                    "bool": {
-                                        "should": [
-                                            {
-                                                "range": {
-                                                    process_time_field: {
-                                                        "gte": isoformat(start),
-                                                        "lte": isoformat(end),
-                                                    }
-                                                }
-                                            },
-                                            {
-                                                "bool": {
-                                                    "must_not": [
-                                                        {"exists": {"field": process_time_field}}
-                                                    ],
-                                                    "filter": [
-                                                        {
-                                                            "range": {
-                                                                self.settings.event_time_field: {
-                                                                    "gte": isoformat(start),
-                                                                    "lte": isoformat(end),
-                                                                }
-                                                            }
-                                                        }
-                                                    ],
-                                                }
-                                            },
-                                        ],
-                                        "minimum_should_match": 1,
-                                    }
-                                }
+                                {"range": {process_time_field: {"gte": isoformat(start), "lte": isoformat(end)}}},
+                                {"exists": {"field": process_time_field}},
                             ]
                         }
                     },
                     "sort": [
+                        {process_time_field: {"order": "asc"}},
                         {"_shard_doc": "asc"},
                     ],
                     "pit": {"id": pit_id, "keep_alive": "2m"},

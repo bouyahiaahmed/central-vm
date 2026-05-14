@@ -87,23 +87,6 @@ class FeatureAccumulator:
         self.outbound_count = 0
         self.internal_count = 0
 
-        self.same_subnet_count = 0
-        self.same_spoke_count = 0
-        self.same_spoke_cross_subnet_count = 0
-        self.same_vnet_cross_subnet_count = 0
-        self.cross_spoke_count = 0
-        self.internal_unknown_count = 0
-        self.inbound_external_count = 0
-        self.outbound_external_count = 0
-        self.external_external_count = 0
-        self.rejected_inbound_count = 0
-
-        self.unique_external_source_ips: set[str] = set()
-        self.unique_external_destination_ips: set[str] = set()
-        self.counterpart_ips: set[str] = set()
-        self.inbound_destination_ports: set[int] = set()
-        self.outbound_destination_ports: set[int] = set()
-
         self.dns_session_count = 0
         self.dns_queries: set[str] = set()
         self.dns_nxdomain_count = 0
@@ -148,10 +131,6 @@ class FeatureAccumulator:
         self.top_protocols: Counter[str] = Counter()
         self.top_destination_ips: Counter[str] = Counter()
         self.top_destination_ports: Counter[int] = Counter()
-        self.top_counterpart_ips: Counter[str] = Counter()
-        self.top_external_source_ips: Counter[str] = Counter()
-        self.top_inbound_destination_ports: Counter[int] = Counter()
-        self.top_outbound_destination_ports: Counter[int] = Counter()
         self.top_dns_queries: Counter[str] = Counter()
         self.top_http_hosts: Counter[str] = Counter()
         self.top_tls_sni: Counter[str] = Counter()
@@ -231,67 +210,19 @@ class FeatureAccumulator:
         if duration >= 0:
             self.durations.append(duration)
 
-        src_ip = get_field(doc, "source.ip")
         dst_local = get_field(doc, "destination.local")
-        src_local = get_field(doc, "source.local")
-        direction = str(get_field(doc, "network.direction", "") or "").lower()
-        scope = str(get_field(doc, "network.scope", "") or "").lower()
-        asset_side = str(get_field(doc, "network.asset.side", "") or "").lower()
-
         if dst_local is True:
             self.internal_destination_count += 1
         elif dst_local is False:
             self.external_destination_count += 1
-            if dst_ip:
-                self.unique_external_destination_ips.add(str(dst_ip))
 
-        if src_local is False and src_ip:
-            self.unique_external_source_ips.add(str(src_ip))
-            self.top_external_source_ips[str(src_ip)] += 1
-
-        if asset_side == "destination" and src_ip:
-            self.counterpart_ips.add(str(src_ip))
-            self.top_counterpart_ips[str(src_ip)] += 1
-        elif dst_ip:
-            self.counterpart_ips.add(str(dst_ip))
-            self.top_counterpart_ips[str(dst_ip)] += 1
-
+        direction = str(get_field(doc, "network.direction", "") or "").lower()
         if direction == "inbound":
             self.inbound_count += 1
-            if dst_port >= 0:
-                self.inbound_destination_ports.add(dst_port)
-                self.top_inbound_destination_ports[dst_port] += 1
         elif direction == "outbound":
             self.outbound_count += 1
-            if dst_port >= 0:
-                self.outbound_destination_ports.add(dst_port)
-                self.top_outbound_destination_ports[dst_port] += 1
         elif direction == "internal":
             self.internal_count += 1
-
-        if scope == "same_subnet":
-            self.same_subnet_count += 1
-            self.same_spoke_count += 1
-        elif scope == "same_spoke_cross_subnet":
-            self.same_spoke_cross_subnet_count += 1
-            self.same_spoke_count += 1
-        elif scope == "same_vnet_cross_subnet":
-            self.same_vnet_cross_subnet_count += 1
-        elif scope == "cross_spoke":
-            self.cross_spoke_count += 1
-        elif scope == "internal_unknown":
-            self.internal_unknown_count += 1
-        elif scope == "inbound_external":
-            self.inbound_external_count += 1
-        elif scope == "outbound_external":
-            self.outbound_external_count += 1
-        elif scope == "external_external":
-            self.external_external_count += 1
-
-        conn_state = str(get_field(doc, "conn.state", "") or "").upper()
-        history = str(get_field(doc, "conn.history", "") or "")
-        if direction == "inbound" and (conn_state == "REJ" or history == "Hr"):
-            self.rejected_inbound_count += 1
 
     def _dns(self, doc: dict[str, Any]) -> None:
         if not has_log_type(doc, "dns"):
@@ -440,23 +371,6 @@ class FeatureAccumulator:
             "inbound_count": self.inbound_count,
             "outbound_count": self.outbound_count,
             "internal_count": self.internal_count,
-
-            "same_subnet_count": self.same_subnet_count,
-            "same_spoke_count": self.same_spoke_count,
-            "same_spoke_cross_subnet_count": self.same_spoke_cross_subnet_count,
-            "same_vnet_cross_subnet_count": self.same_vnet_cross_subnet_count,
-            "cross_spoke_count": self.cross_spoke_count,
-            "internal_unknown_count": self.internal_unknown_count,
-            "inbound_external_count": self.inbound_external_count,
-            "outbound_external_count": self.outbound_external_count,
-            "external_external_count": self.external_external_count,
-            "unique_external_source_ip_count": len(self.unique_external_source_ips),
-            "unique_external_destination_ip_count": len(self.unique_external_destination_ips),
-            "unique_counterpart_ip_count": len(self.counterpart_ips),
-            "unique_inbound_destination_port_count": len(self.inbound_destination_ports),
-            "unique_outbound_destination_port_count": len(self.outbound_destination_ports),
-            "rejected_inbound_count": self.rejected_inbound_count,
-
             "dns_session_count": self.dns_session_count,
             "dns_unique_query_count": len(self.dns_queries),
             "dns_nxdomain_count": self.dns_nxdomain_count,
@@ -502,10 +416,6 @@ class FeatureAccumulator:
             "top_protocols": top_counter(self.top_protocols),
             "top_destination_ips": top_counter(self.top_destination_ips),
             "top_destination_ports": top_counter(self.top_destination_ports, numeric_value=True),
-            "top_counterpart_ips": top_counter(self.top_counterpart_ips),
-            "top_external_source_ips": top_counter(self.top_external_source_ips),
-            "top_inbound_destination_ports": top_counter(self.top_inbound_destination_ports, numeric_value=True),
-            "top_outbound_destination_ports": top_counter(self.top_outbound_destination_ports, numeric_value=True),
             "top_dns_queries": top_counter(self.top_dns_queries),
             "top_http_hosts": top_counter(self.top_http_hosts),
             "top_tls_sni": top_counter(self.top_tls_sni),

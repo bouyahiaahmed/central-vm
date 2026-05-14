@@ -145,18 +145,6 @@
                   "type": "double"
                 }
               }
-            },
-            "is_anomaly": {
-              "type": "boolean"
-            },
-            "anomaly_score": {
-              "type": "double"
-            },
-            "model_name": {
-              "type": "keyword"
-            },
-            "model_version": {
-              "type": "keyword"
             }
           }
         }

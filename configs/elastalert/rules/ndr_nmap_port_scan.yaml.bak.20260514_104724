@@ -1,0 +1,61 @@
+name: "NDR - Possible Nmap Port Scan"
+type: cardinality
+index: ndr-sessions-*
+
+timestamp_field: "@timestamp"
+
+query_delay:
+  minutes: 2
+
+timeframe:
+  minutes: 5
+
+query_key: source.ip
+cardinality_field: destination.port
+max_cardinality: 20
+
+realert:
+  minutes: 15
+
+filter:
+  - bool:
+      filter:
+        - term:
+            network.transport: "tcp"
+      should:
+        - term:
+            conn.state: "REJ"
+        - term:
+            conn.state: "S0"
+        - term:
+            conn.state: "OTH"
+        - term:
+            conn.state: "RSTO"
+        - term:
+            conn.state: "RSTR"
+      minimum_should_match: 1
+
+alert:
+  - debug
+  # later:
+  # - email
+  # - ms_power_automate
+
+alert_subject: "NDR possible Nmap scan from {0}"
+alert_subject_args:
+  - source.ip
+
+alert_text_type: alert_text_jinja
+alert_text: |
+  Possible Nmap / port scanning activity detected.
+
+  Source IP: {{ source.ip }}
+  Destination IP: {{ destination.ip }}
+  Destination port: {{ destination.port }}
+  Sensor: {{ sensor.name }}
+  Conn state: {{ conn.state }}
+  Network direction: {{ network.direction }}
+  Network scope: {{ network.scope }}
+
+  Reason:
+  The same source contacted more than 20 unique destination ports within 5 minutes.

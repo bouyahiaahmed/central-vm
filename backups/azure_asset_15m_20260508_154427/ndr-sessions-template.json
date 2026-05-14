@@ -151,43 +151,6 @@
             },
             "protocols": {
               "type": "keyword"
-            },
-            "scope": {
-              "type": "keyword"
-            },
-            "same_subnet": {
-              "type": "boolean"
-            },
-            "same_spoke": {
-              "type": "boolean"
-            },
-            "same_vnet": {
-              "type": "boolean"
-            },
-            "asset": {
-              "properties": {
-                "ip": {
-                  "type": "ip"
-                },
-                "side": {
-                  "type": "keyword"
-                },
-                "spoke": {
-                  "type": "keyword"
-                },
-                "vnet": {
-                  "type": "keyword"
-                },
-                "subnet": {
-                  "type": "keyword"
-                },
-                "subnet_cidr": {
-                  "type": "keyword"
-                },
-                "scope": {
-                  "type": "keyword"
-                }
-              }
             }
           }
         },
@@ -683,55 +646,6 @@
         "zeek": {
           "type": "object",
           "enabled": false
-        },
-        "cloud": {
-          "properties": {
-            "provider": {
-              "type": "keyword"
-            },
-            "azure": {
-              "properties": {
-                "source": {
-                  "properties": {
-                    "scope": {
-                      "type": "keyword"
-                    },
-                    "spoke": {
-                      "type": "keyword"
-                    },
-                    "vnet": {
-                      "type": "keyword"
-                    },
-                    "subnet": {
-                      "type": "keyword"
-                    },
-                    "subnet_cidr": {
-                      "type": "keyword"
-                    }
-                  }
-                },
-                "destination": {
-                  "properties": {
-                    "scope": {
-                      "type": "keyword"
-                    },
-                    "spoke": {
-                      "type": "keyword"
-                    },
-                    "vnet": {
-                      "type": "keyword"
-                    },
-                    "subnet": {
-                      "type": "keyword"
-                    },
-                    "subnet_cidr": {
-                      "type": "keyword"
-                    }
-                  }
-                }
-              }
-            }
-          }
         }
       }
     }

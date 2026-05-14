@@ -140,7 +140,7 @@ class BehaviorAggregator:
                     "id": behavior_id,
                     "type": self.spec.behavior_type,
                     "feature_set": self.spec.feature_set,
-                    "entity_type": ("local_asset.ip+sensor.name:asset" if key.sensor else "local_asset.ip:asset"),
+                    "entity_type": meta["entity_type"],
                     "entity": key.entity,
                     "sensor": key.sensor,
                     "window": self.spec.window,
@@ -151,7 +151,7 @@ class BehaviorAggregator:
                 "source": {"ip": key.entity, "local": True},
                 "asset": {
                     "ip": key.entity,
-                    "side": "combined",
+                    "side": meta.get("asset_side"),
                     "spoke": meta.get("asset_spoke"),
                     "vnet": meta.get("asset_vnet"),
                     "subnet": meta.get("asset_subnet"),

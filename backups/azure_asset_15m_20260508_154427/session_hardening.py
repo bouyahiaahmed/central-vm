@@ -4,8 +4,6 @@ import ipaddress
 import os
 from typing import Any
 
-from app.azure_topology import enrich_azure_topology
-
 
 def split_csv(value: str | None) -> list[str]:
     if not value:
@@ -418,7 +416,6 @@ def harden_key_type_and_flow(doc: dict[str, Any]) -> None:
 def harden_session_document(doc: dict[str, Any]) -> dict[str, Any]:
     harden_protocol(doc)
     harden_direction(doc)
-    enrich_azure_topology(doc)
     harden_counts(doc)
     harden_x509(doc)
     harden_files(doc)

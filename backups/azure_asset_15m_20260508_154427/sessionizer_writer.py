@@ -106,11 +106,6 @@ class SessionWriter:
             SESSIONS_UPSERTED.inc(success)
             SESSIONS_CREATED.inc(created)
             SESSIONS_UPDATED.inc(updated)
-            try:
-                self.client.indices.refresh(index=f"{self.settings.target_index_prefix}-*", ignore_unavailable=True)
-                logger.info("session_indices_refreshed_after_bulk", extra={"target_index_prefix": self.settings.target_index_prefix})
-            except Exception:
-                logger.warning("session_refresh_after_bulk_failed", exc_info=True)
             return {"created_count": created, "updated_count": updated, "upserted": success}
         except Exception:
             OPENSEARCH_ERRORS.inc()

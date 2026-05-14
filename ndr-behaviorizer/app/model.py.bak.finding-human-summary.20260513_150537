@@ -238,32 +238,7 @@ class BehaviorModelService:
                     "session_refs_truncated": get_field(doc, "evidence.session_refs_truncated", False),
                     "session_refs": get_field(doc, "evidence.session_refs", []) or [],
                 },
-                "ml": {
-                    "anomaly_score": get_field(doc, "ml.anomaly_score"),
-                    "is_anomaly": get_field(doc, "ml.is_anomaly"),
-                    "model_name": get_field(doc, "ml.model_name"),
-                    "model_version": get_field(doc, "ml.model_version"),
-                    "top_features": get_field(doc, "ml.top_features", []) or [],
-                },
-                "human": {
-                    "summary": (
-                        f"ML behavior anomaly detected for host {get_field(doc, 'behavior.entity', 'unknown')} "
-                        f"during {get_field(doc, 'behavior.window_start', 'unknown_start')} to {get_field(doc, 'behavior.window_end', 'unknown_end')} "
-                        f"with severity {get_field(doc, 'score.severity', 'unknown')} "
-                        f"and anomaly score {get_field(doc, 'ml.anomaly_score', 'unknown')}. "
-                        + (
-                            "Main drivers: "
-                            + ", ".join([
-                                str(f.get("name"))
-                                for f in (get_field(doc, "ml.top_features", []) or [])[:5]
-                                if isinstance(f, dict) and f.get("name") is not None
-                            ])
-                            + "."
-                            if get_field(doc, "ml.top_features", []) else
-                            "Review ml.top_features for the main drivers."
-                        )
-                    )
-                },
+                "ml": {"top_features": get_field(doc, "ml.top_features", []) or []},
             }
             findings.append(finding)
         return findings

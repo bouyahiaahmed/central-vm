@@ -4,8 +4,6 @@ import ipaddress
 import os
 from typing import Any
 
-from app.azure_topology import enrich_azure_topology
-
 
 def split_csv(value: str | None) -> list[str]:
     if not value:
@@ -347,39 +345,6 @@ def has_raw_parse_fragment(doc: dict[str, Any]) -> bool:
     return False
 
 
-
-def harden_vector_noise(doc: dict[str, Any]) -> None:
-    zeek = doc.get("zeek")
-    if not isinstance(zeek, dict):
-        return
-
-    reasons = as_list(getn(doc, "session.noise_reasons"))
-    found_noise = False
-
-    for section in zeek.values():
-        if not isinstance(section, dict):
-            continue
-
-        events = section.get("events")
-        if not isinstance(events, list):
-            continue
-
-        for event in events:
-            if not isinstance(event, dict):
-                continue
-
-            if event.get("ndr_noise") is True:
-                found_noise = True
-                noise_type = event.get("ndr_noise_type") or "vector_noise"
-                noise_reason = event.get("ndr_noise_reason") or noise_type
-                reasons.append(str(noise_type))
-                reasons.append(str(noise_reason))
-
-    if found_noise:
-        setn(doc, "session.category", "noise")
-        setn(doc, "session.excluded_from_behavior", True)
-        setn(doc, "session.noise_reasons", unique(reasons))
-
 def harden_key_type_and_flow(doc: dict[str, Any]) -> None:
     session_id = str(getn(doc, "session.id") or "")
     log_types = as_list(getn(doc, "session.log_types"))
@@ -418,11 +383,9 @@ def harden_key_type_and_flow(doc: dict[str, Any]) -> None:
 def harden_session_document(doc: dict[str, Any]) -> dict[str, Any]:
     harden_protocol(doc)
     harden_direction(doc)
-    enrich_azure_topology(doc)
     harden_counts(doc)
     harden_x509(doc)
     harden_files(doc)
-    harden_vector_noise(doc)
     harden_key_type_and_flow(doc)
     tag_control_plane(doc)
     return doc

@@ -401,13 +401,13 @@ services:
       HTTP_PORT: "8080"
       SERVICE_VERSION: "0.1.0"
 
-      ML_ENABLED: "true"
+      ML_ENABLED: "false"
       ML_MIN_TRAINING_ROWS: "20"
       ML_CONTAMINATION: "0.05"
       ML_TRAINING_MAX_DOCS: "10000"
       ML_SCORE_CURRENT_ONLY: "true"
       ML_MODEL_ARTIFACT_PATH: "/tmp/ndr_behaviorizer_model.pkl"
-      FINDINGS_ENABLED: "true"
+      FINDINGS_ENABLED: "false"
       FINDINGS_INDEX_PREFIX: "ndr-findings"
 
     volumes:
@@ -440,7 +440,6 @@ services:
       - ../configs/elastalert/config.yaml:/opt/elastalert/config.yaml:ro
       - ../configs/elastalert/rules:/opt/elastalert/rules:ro
       - ../certs/ca/ca.crt:/opt/elastalert/certs/ca.crt:ro
-      - ../configs/elastalert/enhancements:/opt/elastalert/enhancements:ro
 
     environment:
       ES_HOST: opensearch-node1
@@ -448,8 +447,6 @@ services:
       ES_USE_SSL: "true"
       ES_USERNAME: "${NDR_ADMIN_USERNAME}"
       ES_PASSWORD: "${NDR_ADMIN_PASSWORD}"
-      PYTHONPATH: "/opt/elastalert"
-
 
     command: ["--verbose"]
 

@@ -99,6 +99,9 @@ def process_once(settings: Settings, checkpoint_store: CheckpointStore, reader: 
     logger.info("processing_window_started", extra={"start": isoformat(start), "end": isoformat(end)})
 
     hits = list(reader.read_window(start, end))
+    if not hits:
+        logger.info("processing_window_empty_waiting_for_source", extra={"start": isoformat(start), "end": isoformat(end)})
+        return {"documents_read": 0, "sessions_upserted": 0, "failures": 0}
     groups = builder.group_hits(hits)
     sessions = []
     malformed = 0

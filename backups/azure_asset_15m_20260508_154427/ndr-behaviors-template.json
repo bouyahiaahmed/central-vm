@@ -255,51 +255,6 @@
             },
             "weird_count": {
               "type": "long"
-            },
-            "same_subnet_count": {
-              "type": "long"
-            },
-            "same_spoke_count": {
-              "type": "long"
-            },
-            "same_spoke_cross_subnet_count": {
-              "type": "long"
-            },
-            "same_vnet_cross_subnet_count": {
-              "type": "long"
-            },
-            "cross_spoke_count": {
-              "type": "long"
-            },
-            "internal_unknown_count": {
-              "type": "long"
-            },
-            "inbound_external_count": {
-              "type": "long"
-            },
-            "outbound_external_count": {
-              "type": "long"
-            },
-            "external_external_count": {
-              "type": "long"
-            },
-            "unique_external_source_ip_count": {
-              "type": "long"
-            },
-            "unique_external_destination_ip_count": {
-              "type": "long"
-            },
-            "unique_counterpart_ip_count": {
-              "type": "long"
-            },
-            "unique_inbound_destination_port_count": {
-              "type": "long"
-            },
-            "unique_outbound_destination_port_count": {
-              "type": "long"
-            },
-            "rejected_inbound_count": {
-              "type": "long"
             }
           }
         },
@@ -396,50 +351,6 @@
               "properties": {
                 "value": {
                   "type": "keyword"
-                },
-                "count": {
-                  "type": "long"
-                }
-              }
-            },
-            "top_counterpart_ips": {
-              "type": "nested",
-              "properties": {
-                "value": {
-                  "type": "ip"
-                },
-                "count": {
-                  "type": "long"
-                }
-              }
-            },
-            "top_external_source_ips": {
-              "type": "nested",
-              "properties": {
-                "value": {
-                  "type": "ip"
-                },
-                "count": {
-                  "type": "long"
-                }
-              }
-            },
-            "top_inbound_destination_ports": {
-              "type": "nested",
-              "properties": {
-                "value": {
-                  "type": "long"
-                },
-                "count": {
-                  "type": "long"
-                }
-              }
-            },
-            "top_outbound_destination_ports": {
-              "type": "nested",
-              "properties": {
-                "value": {
-                  "type": "long"
                 },
                 "count": {
                   "type": "long"
@@ -592,28 +503,6 @@
                   "type": "keyword"
                 }
               }
-            }
-          }
-        },
-        "asset": {
-          "properties": {
-            "ip": {
-              "type": "ip"
-            },
-            "side": {
-              "type": "keyword"
-            },
-            "spoke": {
-              "type": "keyword"
-            },
-            "vnet": {
-              "type": "keyword"
-            },
-            "subnet": {
-              "type": "keyword"
-            },
-            "subnet_cidr": {
-              "type": "keyword"
             }
           }
         }

@@ -54,11 +54,6 @@ class BehaviorWriter:
                 OPENSEARCH_ERRORS.inc(len(errors))
                 logger.error("behavior_bulk_errors", extra={"error_count": len(errors), "sample": errors[:3]})
             BEHAVIORS_WRITTEN.inc(success)
-            try:
-                self.client.indices.refresh(index=f"{self.settings.target_index_prefix}-*", ignore_unavailable=True)
-                logger.info("behavior_indices_refreshed_after_bulk", extra={"target_index_prefix": self.settings.target_index_prefix})
-            except Exception:
-                logger.warning("behavior_refresh_after_bulk_failed", exc_info=True)
             return int(success)
         except Exception:
             OPENSEARCH_ERRORS.inc()

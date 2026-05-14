@@ -107,9 +107,6 @@ def process_once(
     logger.info("behavior_processing_window_started", extra={"start": isoformat(start), "end": isoformat(end)})
 
     hits = list(reader.read_window(start, end))
-    if not hits:
-        logger.info("behavior_processing_window_empty_waiting_for_source", extra={"start": isoformat(start), "end": isoformat(end)})
-        return {"documents_read": 0, "behaviors_written": 0, "findings_written": 0, "model_status": "waiting_for_source"}
     behaviors = aggregator.aggregate_hits(hits)
     findings: list[dict[str, Any]] = []
     model_status = "disabled"

@@ -6,24 +6,23 @@ import signal
 import sys
 import threading
 import time
+from datetime import datetime
 from typing import Any
 
 import uvicorn
 from fastapi import FastAPI, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
-from app.aggregator import BehaviorAggregator
 from app.checkpoint import Checkpoint, CheckpointStore
 from app.config import Settings, load_settings
-from app.feature_registry import load_feature_spec
-from app.metrics import PROCESSING_FAILURES, READY
-from app.model import BehaviorModelService
+from app.metrics import OPENSEARCH_ERRORS, RAW_EVENTS_SKIPPED, READY
 from app.opensearch_client import create_client, ping_or_raise
-from app.reader import SessionReader
-from app.utils import isoformat, utc_now
-from app.writer import BehaviorWriter
+from app.reader import ZeekReader
+from app.session_builder import SessionBuilder
+from app.writer import SessionWriter
+from app.utils import isoformat, parse_ts, utc_now
 
-logger = logging.getLogger("ndr_behaviorizer")
+logger = logging.getLogger("ndr_sessionizer")
 _stop = threading.Event()
 _ready = False
 
@@ -60,7 +59,7 @@ def configure_logging() -> None:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="ndr-behaviorizer", version="0.1.0")
+    app = FastAPI(title="ndr-sessionizer", version="0.1.0")
 
     @app.get("/healthz")
     def healthz() -> dict[str, str]:
@@ -93,52 +92,48 @@ def install_signal_handlers() -> None:
     signal.signal(signal.SIGINT, handle_signal)
 
 
-def process_once(
-    settings: Settings,
-    checkpoint_store: CheckpointStore,
-    reader: SessionReader,
-    aggregator: BehaviorAggregator,
-    writer: BehaviorWriter,
-    model_service: BehaviorModelService,
-) -> dict[str, int | str]:
+def process_once(settings: Settings, checkpoint_store: CheckpointStore, reader: ZeekReader, builder: SessionBuilder, writer: SessionWriter) -> dict[str, int]:
     checkpoint = checkpoint_store.load()
     start = checkpoint_store.compute_window_start(checkpoint)
     end = utc_now()
-    logger.info("behavior_processing_window_started", extra={"start": isoformat(start), "end": isoformat(end)})
+    logger.info("processing_window_started", extra={"start": isoformat(start), "end": isoformat(end)})
 
     hits = list(reader.read_window(start, end))
-    if not hits:
-        logger.info("behavior_processing_window_empty_waiting_for_source", extra={"start": isoformat(start), "end": isoformat(end)})
-        return {"documents_read": 0, "behaviors_written": 0, "findings_written": 0, "model_status": "waiting_for_source"}
-    behaviors = aggregator.aggregate_hits(hits)
-    findings: list[dict[str, Any]] = []
-    model_status = "disabled"
-    if settings.ml_enabled and behaviors:
-        behaviors, findings, model_bundle = model_service.score_current_docs(behaviors)
-        model_status = str(model_bundle.get("status", "unknown"))
+    groups = builder.group_hits(hits)
+    sessions = []
+    malformed = 0
+    for group_key, group_hits in groups.items():
+        try:
+            session = builder.build_from_group(group_hits)
+            if session:
+                sessions.append(session)
+        except Exception:
+            malformed += len(group_hits)
+            RAW_EVENTS_SKIPPED.inc(len(group_hits))
+            logger.exception("session_build_failed", extra={"group_key": group_key})
 
-    behaviors_written = writer.bulk_upsert_behaviors(behaviors)
-    findings_written = writer.bulk_index_findings(findings)
+    result = writer.bulk_upsert(sessions)
     checkpoint_store.save(
         Checkpoint(
             last_successful_timestamp=end,
             documents_read=len(hits),
-            behaviors_written=behaviors_written,
-            findings_written=findings_written,
-            failures=0,
+            sessions_updated=result.get("upserted", 0),
+            failures=malformed,
             service_version=settings.service_version,
         )
     )
     logger.info(
-        "behavior_processing_window_finished",
-        extra={"documents_read": len(hits), "behaviors_written": behaviors_written, "findings_written": findings_written, "model_status": model_status},
+        "processing_window_completed",
+        extra={
+            "documents_read": len(hits),
+            "groups": len(groups),
+            "sessions_upserted": result.get("upserted", 0),
+            "created_count": result.get("created", 0),
+            "updated_count": result.get("updated", 0),
+            "failures": malformed,
+        },
     )
-    return {
-        "documents_read": len(hits),
-        "behaviors_written": behaviors_written,
-        "findings_written": findings_written,
-        "model_status": model_status,
-    }
+    return {"documents_read": len(hits), "sessions_upserted": result.get("upserted", 0), "failures": malformed}
 
 
 def main() -> None:
@@ -153,26 +148,35 @@ def main() -> None:
     ping_or_raise(client)
     checkpoint_store = CheckpointStore(client, settings)
     checkpoint_store.ensure_state_index()
-    spec = load_feature_spec(settings.feature_config_path)
-    reader = SessionReader(client, settings)
-    aggregator = BehaviorAggregator(settings, spec)
-    writer = BehaviorWriter(client, settings)
-    model_service = BehaviorModelService(client, settings)
+    reader = ZeekReader(client, settings)
+    builder = SessionBuilder(settings)
+    writer = SessionWriter(client, settings, builder)
     _ready = True
     READY.set(1)
-    logger.info("ndr_behaviorizer_ready", extra={"feature_set": spec.feature_set, "source_index_pattern": settings.source_index_pattern})
+    logger.info(
+        "ndr_sessionizer_started",
+        extra={
+            "source_index_pattern": settings.source_index_pattern,
+            "target_index_prefix": settings.target_index_prefix,
+            "state_index": settings.state_index,
+            "dry_run": settings.dry_run,
+            "run_once": settings.run_once,
+        },
+    )
 
     while not _stop.is_set():
         try:
-            process_once(settings, checkpoint_store, reader, aggregator, writer, model_service)
+            process_once(settings, checkpoint_store, reader, builder, writer)
         except Exception:
-            PROCESSING_FAILURES.inc()
-            logger.exception("behavior_processing_iteration_failed")
+            OPENSEARCH_ERRORS.inc()
+            logger.exception("processing_loop_failed")
         if settings.run_once:
             break
         _stop.wait(settings.poll_interval_seconds)
+
     READY.set(0)
     _ready = False
+    logger.info("ndr_sessionizer_stopped")
 
 
 if __name__ == "__main__":

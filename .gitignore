@@ -27,3 +27,7 @@ users/users.json
 data/
 opensearch-data/
 vector-data/
+
+.env
+*.key
+*.pem
